@@ -5,6 +5,8 @@ Forked from [biemster/3keys_1knob](https://github.com/biemster/3keys_1knob/), wh
 
 Compared to original, keypresses are generated on key release, to allow key combinations.
 
+Also, layer and combination support is added, and sending multimedia (consumer) keycodes.
+
 ## Instructions
 
 ### compile:
