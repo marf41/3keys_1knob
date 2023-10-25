@@ -112,6 +112,7 @@ __idata struct RGB neofade[4];
 
 __idata uint8_t layer = 0;
 __idata uint8_t max_layer = 0;
+__idata uint8_t show_mode = 0;
 __idata struct Chars chars[4];
 
 __idata const int8_t encoder_factor[] = { 0, 1, -1, 2, -1, 0, -2, 1, 1, -2, 0, -1, 2, -1, 1, 0 };
@@ -183,8 +184,8 @@ void parse_layer(int8_t dir) {
       layer = 3;
       break;
     case 2:
-      if (dir  > 0) { layer = 2; return; }
-      if (dir  < 0) { layer = 3; return; }
+      if (dir > 0) { layer = 2; return; }
+      if (dir < 0) { layer = 3; return; }
       break;
     case 3:
       layer += dir;
@@ -198,7 +199,7 @@ void mod_type(char c, uint8_t mod);
 void get_type(enum Event ev, uint8_t n);
 void parse_type(enum Event ev) {
   get_type(ev, layer);
-  if ((layer == 0) && (max_layer < 3)) {
+  if (layer == 0) {
     if (max_layer <= 2) { get_type(ev, 1); }
     if (max_layer <= 1) { get_type(ev, 2); }
     if (max_layer <= 0) { get_type(ev, 3); }
@@ -233,7 +234,27 @@ void get_type(enum Event ev, uint8_t n) {
       c = chars[n].swcharCCW; mod = chars[n].swmodCCW; break;
   }
   if (c == 0) { return; }
-  if (mod == 0xFF) { CON_type(c); return; }
+  if (mod == 0xFF) {
+    if (c >= 0xF0) {
+      switch (c) {
+        case 0xF0: parse_layer(0); break;
+        case 0xF1: layer = 1; break;
+        case 0xF2: layer = 2; break;
+        case 0xF3: layer = 3; break;
+        case 0xF5: max_layer = 0; break;
+        case 0xF6: max_layer = 1; break;
+        case 0xF7: max_layer = 2; break;
+        case 0xF8: max_layer = 3; break;
+        case 0xFA: parse_layer(-1); break;
+        case 0xFB: parse_layer(1); break;
+        case 0xFD: KBD_type('0' + (layer % 10)); break;
+      }
+      if (c != 0xFF) { show_mode = 60; }
+    } else {
+      CON_type(c);
+    }
+    return;
+  }
   mod_type(c, mod);
 }
 
@@ -288,7 +309,6 @@ void main(void) {
   __idata uint8_t hold = 0;
   __idata uint8_t all = 0;  // three keys held
   __idata uint8_t knob = 0; // knob held down
-  __idata uint8_t show_mode = 0;
   __bit mode_changed = 0;
   __idata uint8_t encoder_state = 0;
   __idata int8_t encoder_value = 0;
@@ -320,7 +340,7 @@ void main(void) {
     neofg[i].r = eeprom_read_byte(n++);
     neofg[i].g = eeprom_read_byte(n++);
     neofg[i].b = eeprom_read_byte(n++);
-    max_layer = eeprom_read_byte(n++);
+    if (i == 0) { max_layer = eeprom_read_byte(n++); } else { n++; }
 
     chars[i].mod12 = (char)eeprom_read_byte(n++);
     chars[i].char12 = (char)eeprom_read_byte(n++);
@@ -361,9 +381,16 @@ void main(void) {
     DLY_ms(200); neo[1].r = 255; NEO_update();
     DLY_ms(200);
   }
+  set_neo_bg(1); set_neo_bg(2); set_neo_bg(3);
+  for (i = 1; i <= 3; i++) {
+    if (max_layer >= i) { set_neo_fg(i); }
+  }
+  DLY_ms(200);
   set_neo_fg(1); set_neo_fg(2); set_neo_fg(3);
 
   while (1) {
+    if (max_layer == 0) { layer = 0; }
+
     if (!PIN_read(PIN_KEY1) != key1) { key1 = !key1; }
     if (!PIN_read(PIN_KEY2) != key2) { key2 = !key2; }
     if (!PIN_read(PIN_KEY3) != key3) { key3 = !key3; }
@@ -404,13 +431,8 @@ void main(void) {
     if (keyenc) { // encoder pressed
       if (encoder_dir) {
         mode_changed = 1;
-        if (max_layer > 0) {
-          parse_layer(encoder_dir);
-          show_mode = 60;
-        } else {
-          if (encoder_dir > 0) { parse_type(ENC_SW_CCW); }
-          if (encoder_dir < 0) { parse_type(ENC_SW_CW); }
-        }
+        if (encoder_dir > 0) { parse_type(ENC_SW_CCW); }
+        if (encoder_dir < 0) { parse_type(ENC_SW_CW); }
       }
       if (max_layer > 0) {
         if (knob > 200) { parse_layer(0); mode_changed = 1; }

@@ -43,7 +43,13 @@ Layers 1, 2, 3 and have the same layout. Layer 1 starts at 33, and so on.
 - `MMCC` - four bytes, key settings
 	- `MM` - modifier:
 		- if set to `0xFF`, character code will be sent as Consumer Keyboard Keycode
-		- otherwise, bits in order: `(7) RG RA RS RC LG LA LS LC (0)`
+			- also, character codes `0xF0` - `0xFB` (`0xFFF0`-`0xFFFB`) allow layer manipulation:
+				- `0xF0`-`0xF3`: set layer to `0`-`3`,
+				- `0xF5`-`0xF8`: set `max layer` to `0-3`,
+				- `0xFA`: switch to layer `-1`,
+				- `0xFB`: switch to layer `+1`.
+				- `0xFD`: print current `max_layer` as 3 characters.
+		- otherwise, modifier keys bits in order: `(7) RG RA RS RC LG LA LS LC (0)`
 		- `R` - right, `L` - left, `C` - ctrl, `S` - shift, `A` - alt, `G` - gui (win)
 	- `CC` - keycode (ASCII, or from `usb_conkbd.h`)
 - `MM` and `CC` - encoder pressed settings are split into two halves
@@ -70,4 +76,4 @@ This keyboard can operate in four different modes, as selected by `max layers` v
 
 To switch between layers:
 	- press and hold encoder's switch to switch to layer `0`
-	- press and rotate encoder to switch to other layers
+	- assign keycodes from group `0xFFF0`-`0xFFFF` to switch to other layers

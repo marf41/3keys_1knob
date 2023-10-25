@@ -88,11 +88,12 @@ clean:
 	@rm -f $(TARGET).hex $(TARGET).bin
 
 get_isp:
-	@git clone https://github.com/frank-zago/isp55e0
-	@make -C isp55e0
+	@cd tools && git clone https://github.com/frank-zago/isp55e0
+	@make -C tools/isp55e0
 
 dump:
-	isp55e0/isp55e0 -m flashdata.bin
+	tools/isp55e0/isp55e0 -m flashdata.bin
 
 data:
-	isp55e0/isp55e0 -k flashdata.bin
+	tools/isp55e0/isp55e0 -k flashdata.bin
+	@echo "Please restart the board."
