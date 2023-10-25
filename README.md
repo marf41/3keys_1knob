@@ -1,7 +1,7 @@
 # 3keys_1knob
 Custom firmware for a 3-key + rotary encoder macropad.
 
-Forked from [biemster/3keys_1knob](https://github.com/biemster/3keys_1knob/)
+Forked from [biemster/3keys_1knob](https://github.com/biemster/3keys_1knob/), which is based on [wagiminator/CH552-Macropad-mini](https://github.com/wagiminator/CH552-Macropad-mini/).
 
 Compared to original, keypresses are generated on key release, to allow key combinations.
 
