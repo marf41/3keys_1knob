@@ -72,8 +72,8 @@ This keyboard can operate in four different modes, as selected by `max layers` v
 - `1` - layers `0` and `3` will be active. Up to three keys on layer `0`, and one on `3`.
 	- layer `0` will press keys from `0`, `1`, and `2`
 - `2` - layers `0`, `2`, and `3` active, layer `0` uses keys from `0` and `1`, in sequence.
-- `3` - all layers are active, no sequences available, only one keypress keypress.
+- `3` - all layers are active, no sequences available, only one keypress per layer.
 
 To switch between layers:
-	- press and hold encoder's switch to switch to layer `0`
-	- assign keycodes from group `0xFFF0`-`0xFFFF` to switch to other layers
+- press and hold encoder's switch to switch to layer `0`,
+- assign keycodes from group `0xFFF0`-`0xFFFF` to switch to other layers.
