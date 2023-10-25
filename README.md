@@ -31,7 +31,7 @@ Compared to original, keypresses are generated on key release, to allow key comb
 
 | Position | Layer | Key 1+2 | Key 2+3 | Key 1+3 | Encoder pressed CW | Encoder pressed CCW | Fade     | Encoder pressed CW | Background | Encoder pressed CCW |
 |----------|-------|---------|---------|---------|--------------------|---------------------|----------|--------------------|------------|---------------------|
-| `16-32   | `0`   | `MMCC`  | `MMCC`  | `MMCC`  | `CC`               | `CC`                | `RRGGBB` | `MM`               | `RRGGBB`   | `MM`                |
+| `16-32`   | `0`   | `MMCC`  | `MMCC`  | `MMCC`  | `CC`               | `CC`                | `RRGGBB` | `MM`               | `RRGGBB`   | `MM`                |
 
 Layers 1, 2, 3 and have the same layout. Layer 1 starts at 33, and so on.
 `Max layers` exist only on layer 0. On other, this value is reserved for future use.
@@ -51,7 +51,7 @@ Layers 1, 2, 3 and have the same layout. Layer 1 starts at 33, and so on.
 	- foreground - layer colour, used when switching, and after switch has been pressed,
 	- background - default level, foreground will fade out to it,
 	- fade - fade step, each loop removes these values from current level, until background level is reached,
-- `max layers` - controls keyboard behaviour, as explained below.
+- `max layers` - `NN` - `0-3` controls keyboard behaviour, as explained below.
 	
 ### Layers and sequences
 
