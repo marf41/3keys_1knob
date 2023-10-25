@@ -48,7 +48,7 @@ Layers 1, 2, 3 and have the same layout. Layer 1 starts at 33, and so on.
 				- `0xF5`-`0xF8`: set `max layer` to `0-3`,
 				- `0xFA`: switch to layer `-1`,
 				- `0xFB`: switch to layer `+1`.
-				- `0xFD`: print current `max_layer` as 3 characters.
+				- `0xFD`: print current `layer` as 1 character.
 		- otherwise, modifier keys bits in order: `(7) RG RA RS RC LG LA LS LC (0)`
 		- `R` - right, `L` - left, `C` - ctrl, `S` - shift, `A` - alt, `G` - gui (win)
 	- `CC` - keycode (ASCII, or from `usb_conkbd.h`)
