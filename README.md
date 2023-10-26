@@ -36,22 +36,23 @@ Also, layer and combination support is added, and sending multimedia (consumer) 
 | `16-32`   | `0`   | `MMCC`  | `MMCC`  | `MMCC`  | `CC`               | `CC`                | `RRGGBB` | `MM`               | `RRGGBB`   | `MM`                |
 
 Layers 1, 2, 3 and have the same layout. Layer 1 starts at 33, and so on.
-`Max layers` exist only on layer 0. On other, this value is reserved for future use.
+`Max layers` exists only on layer 0. On others, this value can be used as delay, if layer is used as sequence (delay will be `value * ~100 ms`).
 
 ### Meanings
 
 - `MMCC` - four bytes, key settings
 	- `MM` - modifier:
 		- if set to `0xFF`, character code will be sent as Consumer Keyboard Keycode
-			- also, character codes `0xF0` - `0xFB` (`0xFFF0`-`0xFFFB`) allow layer manipulation:
-				- `0xF0`-`0xF3`: set layer to `0`-`3`,
-				- `0xF5`-`0xF8`: set `max layer` to `0-3`,
-				- `0xFA`: switch to layer `-1`,
-				- `0xFB`: switch to layer `+1`.
-				- `0xFD`: print current `layer` as 1 character.
+			- also, character codes `0xF0` - `0xFB` (`0xFFF0`-`0xFFFB`) allow layer manipulation.
 		- otherwise, modifier keys bits in order: `(7) RG RA RS RC LG LA LS LC (0)`
 		- `R` - right, `L` - left, `C` - ctrl, `S` - shift, `A` - alt, `G` - gui (win)
 	- `CC` - keycode (ASCII, or from `usb_conkbd.h`)
+		- also layer manipulation, when `MM` is set to `0xFF`:
+			- `0xF0`-`0xF3`: set `layer` to `0`-`3`,
+			- `0xF5`-`0xF8`: set `max layer` to `0-3`,
+			- `0xFA`: switch to layer `-1`,
+			- `0xFB`: switch to layer `+1`.
+			- `0xFD`: print current `layer` as 1 character.
 - `MM` and `CC` - encoder pressed settings are split into two halves
 	- this indicates settings for when encoder is pressed down and then turned
 	- it is active only when layers are disabled (`max_layers` set to `0`)

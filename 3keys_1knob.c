@@ -113,9 +113,11 @@ __idata struct RGB neofade[4];
 __idata uint8_t layer = 0;
 __idata uint8_t max_layer = 0;
 __idata uint8_t show_mode = 0;
+__idata uint8_t option[4] = { 0 };
 __idata struct Chars chars[4];
 
 __idata const int8_t encoder_factor[] = { 0, 1, -1, 2, -1, 0, -2, 1, 1, -2, 0, -1, 2, -1, 1, 0 };
+__idata int8_t encoder_value = 0;
 
 // Update NeoPixels
 void NEO_update(void) {
@@ -195,14 +197,21 @@ void parse_layer(int8_t dir) {
   }
 }
 
+void seq_delay(uint8_t n) {
+  __idata uint8_t i;
+  if (n < 1) { return; }
+  if (n > 3) { return; }
+  for (i = 0; i < option[n]; i++) { DLY_ms(100); }
+}
+
 void mod_type(char c, uint8_t mod);
 void get_type(enum Event ev, uint8_t n);
 void parse_type(enum Event ev) {
   get_type(ev, layer);
   if (layer == 0) {
-    if (max_layer <= 2) { get_type(ev, 1); }
-    if (max_layer <= 1) { get_type(ev, 2); }
-    if (max_layer <= 0) { get_type(ev, 3); }
+    if (max_layer <= 2) { seq_delay(1); get_type(ev, 1); }
+    if (max_layer <= 1) { seq_delay(2); get_type(ev, 2); }
+    if (max_layer <= 0) { seq_delay(3); get_type(ev, 3); }
   }
 }
 
@@ -286,6 +295,74 @@ uint8_t eeprom_read_byte (uint8_t addr){
   return ROM_DATA_L;
 }
 
+void enter_bootloader(void);
+void parse_keys() {
+  static __bit key1 = 0;
+  static __bit key2 = 0;
+  static __bit key3 = 0;
+
+  static __idata uint8_t press = 0;
+  static __idata uint8_t hold = 0;
+  static __idata uint8_t all = 0;  // three keys held
+
+  if (!PIN_read(PIN_KEY1) != key1) { key1 = !key1; }
+  if (!PIN_read(PIN_KEY2) != key2) { key2 = !key2; }
+  if (!PIN_read(PIN_KEY3) != key3) { key3 = !key3; }
+
+  hold = 0;
+  if (key1) { hold |= 1; press |= 1; set_neo_fg(1); }
+  if (key2) { hold |= 2; press |= 2; set_neo_fg(2); }
+  if (key3) { hold |= 4; press |= 4; set_neo_fg(3); }
+
+  if (hold == 0) {
+    switch (press) {
+      case 1: parse_type(KEY1); break;
+      case 2: parse_type(KEY2); break;
+      case 4: parse_type(KEY3); break;
+      case 3: parse_type(KEY12); break;
+      case 5: parse_type(KEY13); break;
+      case 6: parse_type(KEY23); break;
+    }
+    press = 0;
+    all = 0;
+  } else {
+      if (hold == 7) { all++; if (all > 200) { enter_bootloader(); } }
+  }
+}
+
+void parse_encoder() {
+  static __bit keyenc = 0;
+  static __idata uint8_t knob = 0; // knob held down
+  static __bit mode_changed = 0;
+
+  __idata int8_t encoder_dir = 0;
+
+  if (!PIN_read(PIN_ENC_SW) != keyenc) {
+    keyenc = !keyenc;
+    if (keyenc) { mode_changed = 0; }
+    if (!keyenc && !mode_changed) { parse_type(ENC_SW); }
+  }
+
+  if (encoder_value >= 4)  { encoder_dir = -1; encoder_value -= 4; }
+  if (encoder_value <= -4) { encoder_dir =  1; encoder_value += 4; }
+
+  if (keyenc) { // encoder pressed
+    if (encoder_dir) {
+      mode_changed = 1;
+      if (encoder_dir > 0) { parse_type(ENC_SW_CCW); }
+      if (encoder_dir < 0) { parse_type(ENC_SW_CW); }
+    }
+    if (max_layer > 0) {
+      if (knob > 200) { parse_layer(0); mode_changed = 1; }
+      if (mode_changed) { show_mode = 60; knob = 0; } else { knob++; }
+    }
+  } else {
+    if (encoder_dir > 0) { parse_type(ENC_CCW); }
+    if (encoder_dir < 0) { parse_type(ENC_CW); }
+    knob = 0;
+  }
+}
+
 // ===================================================================================
 // Main Function
 // ===================================================================================
@@ -300,19 +377,9 @@ void main(void) {
   // Variables
   __idata uint8_t i = 0;
   __idata uint8_t n = 0;
-  __bit key1 = 0;
-  __bit key2 = 0;
-  __bit key3 = 0;
-  __bit keyenc = 0;
   __bit warning = 0;
-  __idata uint8_t press = 0;
-  __idata uint8_t hold = 0;
-  __idata uint8_t all = 0;  // three keys held
-  __idata uint8_t knob = 0; // knob held down
-  __bit mode_changed = 0;
   __idata uint8_t encoder_state = 0;
-  __idata int8_t encoder_value = 0;
-  __idata int8_t encoder_dir = 0;
+  __idata uint8_t dt = 0;
   // __idata struct RGB neomode;
 
   NEO_init();
@@ -340,7 +407,7 @@ void main(void) {
     neofg[i].r = eeprom_read_byte(n++);
     neofg[i].g = eeprom_read_byte(n++);
     neofg[i].b = eeprom_read_byte(n++);
-    if (i == 0) { max_layer = eeprom_read_byte(n++); } else { n++; }
+    option[i] = eeprom_read_byte(n++);
 
     chars[i].mod12 = (char)eeprom_read_byte(n++);
     chars[i].char12 = (char)eeprom_read_byte(n++);
@@ -372,6 +439,7 @@ void main(void) {
     if (neofade[i].g == 0) { neofade[i].g = 1; }
     if (neofade[i].b == 0) { neofade[i].b = 1; }
   }
+  max_layer = option[0];
 
   if ((chars[0].char1 | chars[0].char2 | chars[0].char3) == 0) {
     neo[1].r = 255; neo[1].g = 0; neo[1].b = 0; NEO_update();
@@ -390,68 +458,24 @@ void main(void) {
 
   while (1) {
     if (max_layer == 0) { layer = 0; }
-
-    if (!PIN_read(PIN_KEY1) != key1) { key1 = !key1; }
-    if (!PIN_read(PIN_KEY2) != key2) { key2 = !key2; }
-    if (!PIN_read(PIN_KEY3) != key3) { key3 = !key3; }
-
-    hold = 0;
-    if (key1) { hold |= 1; press |= 1; set_neo_fg(1); }
-    if (key2) { hold |= 2; press |= 2; set_neo_fg(2); }
-    if (key3) { hold |= 4; press |= 4; set_neo_fg(3); }
-
-    if (hold == 0) {
-      switch (press) {
-        case 1: parse_type(KEY1); break;
-        case 2: parse_type(KEY2); break;
-        case 4: parse_type(KEY3); break;
-        case 3: parse_type(KEY12); break;
-        case 5: parse_type(KEY13); break;
-        case 6: parse_type(KEY23); break;
-      }
-      press = 0;
-      all = 0;
-    } else {
-        if (hold == 7) { all++; if (all > 200) { enter_bootloader(); } }
-    }
-
-    if (!PIN_read(PIN_ENC_SW) != keyenc) {
-      keyenc = !keyenc;
-      if (keyenc) { mode_changed = 0; }
-      if (!keyenc && !mode_changed) { parse_type(ENC_SW); }
-    }
-
     i = (encoder_state & 3) | ((!PIN_read(PIN_ENC_A)) << 2) | ((!PIN_read(PIN_ENC_B)) << 3);
     encoder_state = i >> 2;
     encoder_value += encoder_factor[i];
-    encoder_dir = 0;
-    if (encoder_value >= 4)  { encoder_dir = -1; encoder_value -= 4; }
-    if (encoder_value <= -4) { encoder_dir =  1; encoder_value += 4; }
+    dt++;
 
-    if (keyenc) { // encoder pressed
-      if (encoder_dir) {
-        mode_changed = 1;
-        if (encoder_dir > 0) { parse_type(ENC_SW_CCW); }
-        if (encoder_dir < 0) { parse_type(ENC_SW_CW); }
+    if (dt >= 5) {
+      parse_keys();
+      parse_encoder();
+      NEO_update();
+      fade_out(0);
+      if (show_mode) {
+        show_mode--;
+        set_neo_rgb(0, neofg[layer].r, neofg[layer].g, neofg[layer].b);
       }
-      if (max_layer > 0) {
-        if (knob > 200) { parse_layer(0); mode_changed = 1; }
-        if (mode_changed) { show_mode = 60; knob = 0; } else { knob++; }
-      }
-    } else {
-      if (encoder_dir > 0) { parse_type(ENC_CCW); }
-      if (encoder_dir < 0) { parse_type(ENC_CW); }
-      knob = 0;
+      WDT_reset();
+      dt -= 5;
     }
 
-    NEO_update();
-    fade_out(0);
-    if (show_mode) {
-      show_mode--;
-      set_neo_rgb(0, neofg[layer].r, neofg[layer].g, neofg[layer].b);
-    }
-
-    DLY_ms(5);
-    WDT_reset();
+    DLY_ms(1);
   }
 }
